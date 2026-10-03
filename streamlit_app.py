@@ -195,18 +195,21 @@ c1, c2 = st.columns(2)
 if plot_df.empty:
     st.info("No plot data yet - need entries on consecutive days.")
 else:
+    plot_df["date"] = plot_df["date"].dt.strftime("%Y-%m-%d")
     fig_sleep = px.scatter(
         plot_df, x="prior_night_sleep_score", y="morning_mood", color="child",
+        hover_data={"date": True},
         title="Morning Mood vs Prior Night Sleep Score",
         labels={"prior_night_sleep_score": "Prior Night Sleep (score)",
-                "morning_mood": "Morning Mood (1-10)"},
+                "morning_mood": "Morning Mood (1-10)", "date": "Date"},
         range_y=[0, 11], range_x=[4, 11],
     )
     fig_eat = px.scatter(
         plot_df, x="prior_day_eating", y="morning_mood", color="child",
+        hover_data={"date": True},
         title="Morning Mood vs Prior Day Eating",
         labels={"prior_day_eating": "Prior Day Eating (1-10)",
-                "morning_mood": "Morning Mood (1-10)"},
+                "morning_mood": "Morning Mood (1-10)", "date": "Date"},
         range_y=[0, 11], range_x=[0, 11],
     )
     c1.plotly_chart(fig_sleep, use_container_width=True)

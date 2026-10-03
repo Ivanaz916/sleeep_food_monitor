@@ -328,18 +328,21 @@ def update_graphs(_version):
     if df.empty:
         empty = px.scatter(title="No data yet - need entries on consecutive days")
         return empty, empty
+    df["date"] = df["date"].dt.strftime("%Y-%m-%d")
     fig_sleep = px.scatter(
         df, x="prior_night_sleep_score", y="morning_mood", color="child",
+        hover_data={"date": True},
         title="Morning Mood vs Prior Night Sleep Score",
         labels={"prior_night_sleep_score": "Prior Night Sleep (score)",
-                "morning_mood": "Morning Mood (1-10)"},
+                "morning_mood": "Morning Mood (1-10)", "date": "Date"},
         range_y=[0, 11], range_x=[4, 11],
     )
     fig_eat = px.scatter(
         df, x="prior_day_eating", y="morning_mood", color="child",
+        hover_data={"date": True},
         title="Morning Mood vs Prior Day Eating",
         labels={"prior_day_eating": "Prior Day Eating (1-10)",
-                "morning_mood": "Morning Mood (1-10)"},
+                "morning_mood": "Morning Mood (1-10)", "date": "Date"},
         range_y=[0, 11], range_x=[0, 11],
     )
     return fig_sleep, fig_eat
