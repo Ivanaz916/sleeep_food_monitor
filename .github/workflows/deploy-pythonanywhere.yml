@@ -1,0 +1,27 @@
+name: Deploy to PythonAnywhere
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull latest code on PythonAnywhere
+        run: |
+          curl --fail -s -X POST \
+            "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/consoles/${{ secrets.PA_CONSOLE_ID }}/send_input/" \
+            -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}" \
+            --data-urlencode "input=cd ~/sleeep_food_monitor && git pull
+          "
+
+      - name: Wait for pull to finish
+        run: sleep 15
+
+      - name: Reload web app
+        run: |
+          curl --fail -s -X POST \
+            "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/webapps/${{ secrets.PA_USERNAME }}.pythonanywhere.com/reload/" \
+            -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}"

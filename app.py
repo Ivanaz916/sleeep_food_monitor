@@ -59,8 +59,15 @@ def save_data(df):
 
 
 # Bootstrap is served locally from assets/bootstrap.min.css
-app = dash.Dash(__name__)
+app = dash.Dash(
+    __name__,
+    meta_tags=[
+        {"name": "viewport",
+         "content": "width=device-width, initial-scale=1, maximum-scale=1"},
+    ],
+)
 app.title = "Sleep & Food Monitor"
+server = app.server  # exposed for WSGI hosting (PythonAnywhere)
 
 
 def build_calendar(year, month, df):
@@ -87,7 +94,7 @@ def build_calendar(year, month, df):
                             str(day),
                             id={"type": "day-btn", "date": iso},
                             color="success" if has_entry else "light",
-                            className="w-100",
+                            className="w-100 day-btn",
                             size="sm",
                         ),
                         className="p-1",
@@ -115,7 +122,7 @@ form_modal = dbc.Modal(
                            marks={i: str(i) for i in range(1, 11)}),
                 dbc.Label("Night wakings", className="mt-3"),
                 dbc.Input(id="input-wakings", type="number", min=0, step=1,
-                          value=0),
+                          value=0, inputmode="numeric"),
                 dbc.Label("Bedtime", className="mt-3"),
                 dbc.Input(id="input-bedtime", type="time", value="20:30"),
                 dbc.Label("Following Morning mood (1-10, 10 = great mood)",
@@ -136,6 +143,9 @@ form_modal = dbc.Modal(
     ],
     id="entry-modal",
     is_open=False,
+    fullscreen="sm-down",  # full-screen form on phones
+    scrollable=True,
+    centered=True,
 )
 
 today = date.today()
@@ -145,7 +155,7 @@ app.layout = dbc.Container(
         dcc.Store(id="store-month", data={"year": today.year, "month": today.month}),
         dcc.Store(id="store-selected-date"),
         dcc.Store(id="store-data-version", data=0),
-        html.H2("Sleep & Food Monitor", className="my-3"),
+        html.H2("Sleep & Food Monitor", className="my-3 app-title"),
         dbc.Card(
             dbc.CardBody(
                 [
@@ -172,16 +182,25 @@ app.layout = dbc.Container(
         ),
         dbc.Row(
             [
-                dbc.Col(dcc.Graph(id="graph-mood-sleep"), md=6),
-                dbc.Col(dcc.Graph(id="graph-mood-eating"), md=6),
+                dbc.Col(dcc.Graph(
+                    id="graph-mood-sleep",
+                    config={"displayModeBar": False, "responsive": True},
+                    style={"minHeight": "320px"},
+                ), md=6, xs=12, className="mb-3"),
+                dbc.Col(dcc.Graph(
+                    id="graph-mood-eating",
+                    config={"displayModeBar": False, "responsive": True},
+                    style={"minHeight": "320px"},
+                ), md=6, xs=12, className="mb-3"),
             ]
         ),
         dbc.Button("Download data (CSV)", id="btn-download", color="info",
-                   className="mb-4"),
+                   className="mb-4 w-100 w-md-auto"),
         dcc.Download(id="download-csv"),
         form_modal,
     ],
-    fluid=False,
+    fluid="md",  # edge-to-edge on phones, fixed width on desktop
+    className="px-2 px-md-3",
 )
 
 
@@ -345,6 +364,13 @@ def update_graphs(_version):
                 "morning_mood": "Morning Mood (1-10)", "date": "Date"},
         range_y=[0, 11], range_x=[0, 11],
     )
+    for fig in (fig_sleep, fig_eat):
+        fig.update_layout(
+            margin=dict(l=40, r=10, t=50, b=70),
+            legend=dict(orientation="h", yanchor="top", y=-0.2,
+                        xanchor="left", x=0),
+            title_font_size=15,
+        )
     return fig_sleep, fig_eat
 
 
@@ -365,4 +391,5 @@ def download_csv(n_clicks):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # host 0.0.0.0 lets you open the app from a phone on the same wifi
+    app.run(debug=True, host="0.0.0.0", port=8050)

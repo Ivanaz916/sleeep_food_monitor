@@ -1,0 +1,55 @@
+/* Mobile-friendly tweaks (assets/ files are auto-loaded by Dash) */
+
+/* Bigger tap targets for calendar day buttons */
+.day-btn {
+    min-height: 44px;
+    padding: 0.25rem 0;
+    font-size: 1rem;
+}
+
+/* 16px inputs prevent iOS Safari from auto-zooming on focus */
+input.form-control,
+.Select-control,
+.Select input,
+select.form-select {
+    font-size: 16px !important;
+}
+
+/* Larger buttons in the entry modal footer for thumbs */
+.modal-footer .btn {
+    min-height: 44px;
+    min-width: 72px;
+}
+
+/* Give sliders extra vertical room so handles are easy to grab */
+.rc-slider {
+    margin: 12px 4px 20px 4px;
+}
+.rc-slider-handle {
+    width: 22px;
+    height: 22px;
+    margin-top: -9px;
+}
+.rc-slider-mark-text {
+    font-size: 12px;
+}
+
+@media (max-width: 575.98px) {
+    .app-title {
+        font-size: 1.35rem;
+    }
+
+    /* Tighter calendar padding so all 7 columns fit */
+    #calendar-grid .col {
+        padding: 2px !important;
+    }
+    .day-btn {
+        font-size: 0.9rem;
+    }
+
+    /* Full-width action buttons stack nicely in the modal */
+    .modal-footer {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+}
