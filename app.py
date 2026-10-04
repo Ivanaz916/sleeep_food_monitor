@@ -15,6 +15,7 @@ COLUMNS = [
     "date",
     "child",
     "morning_mood",
+    "fruit_before_dinner",
     "dinner_completeness",
     "night_wakings",
     "bedtime",
@@ -50,6 +51,8 @@ def bedtime_to_score(bedtime_str):
 def load_data():
     if os.path.exists(DATA_FILE):
         df = pd.read_csv(DATA_FILE, dtype={"date": str, "bedtime": str})
+        if "fruit_before_dinner" not in df:
+            df["fruit_before_dinner"] = 1
         return df
     return pd.DataFrame(columns=COLUMNS)
 
@@ -116,6 +119,10 @@ form_modal = dbc.Modal(
                     value="NR",
                     clearable=False,
                 ),
+                dbc.Label("Snack/fruit before dinner (0 = none, 1 = small portion, 5 = large portion)",
+                          className="mt-3"),
+                dcc.Slider(id="input-fruit", min=0, max=5, step=1, value=1,
+                           marks={i: str(i) for i in range(0, 6)}),
                 dbc.Label("Dinner completeness (1-10, 10 = highly complete)",
                           className="mt-3"),
                 dcc.Slider(id="input-dinner", min=1, max=10, step=1, value=10,
@@ -194,6 +201,12 @@ app.layout = dbc.Container(
                 ), md=6, xs=12, className="mb-3"),
             ]
         ),
+        dcc.Graph(
+            id="graph-fruit-dinner",
+            config={"displayModeBar": False, "responsive": True},
+            style={"minHeight": "320px"},
+            className="mb-3",
+        ),
         dbc.Button("Download data (CSV)", id="btn-download", color="info",
                    className="mb-4 w-100 w-md-auto"),
         dcc.Download(id="download-csv"),
@@ -259,6 +272,7 @@ def toggle_modal(day_clicks, cancel, save):
 
 @app.callback(
     Output("input-mood", "value"),
+    Output("input-fruit", "value"),
     Output("input-dinner", "value"),
     Output("input-wakings", "value"),
     Output("input-bedtime", "value"),
@@ -267,7 +281,7 @@ def toggle_modal(day_clicks, cancel, save):
     Input("btn-clear", "n_clicks"),
 )
 def prefill_form(selected_date, child, clear_clicks):
-    defaults = (10, 10, 0, "20:30")
+    defaults = (10, 1, 10, 0, "20:30")
     if ctx.triggered_id == "btn-clear" or not selected_date:
         return defaults
     df = load_data()
@@ -275,8 +289,9 @@ def prefill_form(selected_date, child, clear_clicks):
     if match.empty:
         return defaults
     row = match.iloc[0]
-    return (int(row["morning_mood"]), int(row["dinner_completeness"]),
-            int(row["night_wakings"]), row["bedtime"])
+    return (int(row["morning_mood"]), int(row["fruit_before_dinner"]),
+            int(row["dinner_completeness"]), int(row["night_wakings"]),
+            row["bedtime"])
 
 
 @app.callback(
@@ -286,13 +301,14 @@ def prefill_form(selected_date, child, clear_clicks):
     State("store-selected-date", "data"),
     State("input-child", "value"),
     State("input-mood", "value"),
+    State("input-fruit", "value"),
     State("input-dinner", "value"),
     State("input-wakings", "value"),
     State("input-bedtime", "value"),
     State("store-data-version", "data"),
     prevent_initial_call=True,
 )
-def save_entry(save_clicks, clear_clicks, selected_date, child, mood, dinner,
+def save_entry(save_clicks, clear_clicks, selected_date, child, mood, fruit, dinner,
                wakings, bedtime, version):
     if not selected_date:
         return dash.no_update
@@ -308,6 +324,7 @@ def save_entry(save_clicks, clear_clicks, selected_date, child, mood, dinner,
         "date": selected_date,
         "child": child,
         "morning_mood": mood,
+        "fruit_before_dinner": fruit,
         "dinner_completeness": dinner,
         "night_wakings": wakings or 0,
         "bedtime": bedtime,
@@ -340,13 +357,15 @@ def build_plot_df(df):
 @app.callback(
     Output("graph-mood-sleep", "figure"),
     Output("graph-mood-eating", "figure"),
+    Output("graph-fruit-dinner", "figure"),
     Input("store-data-version", "data"),
 )
 def update_graphs(_version):
-    df = build_plot_df(load_data())
+    raw_df = load_data()
+    df = build_plot_df(raw_df)
     if df.empty:
         empty = px.scatter(title="No data yet - need entries on consecutive days")
-        return empty, empty
+        return empty, empty, empty
     df["date"] = df["date"].dt.strftime("%Y-%m-%d")
     fig_sleep = px.scatter(
         df, x="prior_night_sleep_score", y="morning_mood", color="child",
@@ -364,14 +383,23 @@ def update_graphs(_version):
                 "morning_mood": "Morning Mood (1-10)", "date": "Date"},
         range_y=[0, 11], range_x=[0, 11],
     )
-    for fig in (fig_sleep, fig_eat):
+    fig_fruit_dinner = px.scatter(
+        raw_df, x="fruit_before_dinner", y="dinner_completeness", color="child",
+        hover_data={"date": True},
+        title="Dinner Completeness vs Snack/Fruit Before Dinner",
+        labels={"fruit_before_dinner": "Snack/Fruit Before Dinner (0-5)",
+                "dinner_completeness": "Dinner Completeness (1-10)",
+                "date": "Date"},
+        range_x=[-0.5, 5.5], range_y=[0, 11],
+    )
+    for fig in (fig_sleep, fig_eat, fig_fruit_dinner):
         fig.update_layout(
             margin=dict(l=40, r=10, t=50, b=70),
             legend=dict(orientation="h", yanchor="top", y=-0.2,
                         xanchor="left", x=0),
             title_font_size=15,
         )
-    return fig_sleep, fig_eat
+    return fig_sleep, fig_eat, fig_fruit_dinner
 
 
 @app.callback(
