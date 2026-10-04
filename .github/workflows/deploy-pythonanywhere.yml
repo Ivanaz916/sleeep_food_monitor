@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Pull latest code on PythonAnywhere
         run: |
-          curl --fail -s -X POST \
+          curl --fail-with-body --show-error -X POST \
             "https://www.pythonanywhere.com/api/v0/user/${{ secrets.PA_USERNAME }}/consoles/${{ secrets.PA_CONSOLE_ID }}/send_input/" \
             -H "Authorization: Token ${{ secrets.PA_API_TOKEN }}" \
             --data-urlencode "input=cd ~/sleeep_food_monitor && git pull
